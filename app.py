@@ -25,7 +25,6 @@ try:
 except:
     st.error("API 키가 설정되지 않았습니다. 관리자(서버) 설정을 확인해주세요.")
 
-# --- 💾 화면 전환을 위한 상태 저장소 (Session State) 초기화 ---
 if 'step' not in st.session_state:
     st.session_state.step = 1
 
@@ -34,8 +33,9 @@ def reset_app():
     st.rerun()
 
 def call_gemini(prompt, system_instruction, temperature, max_tokens=3000):
+    # 명확한 최신 Flash 모델명으로 변경
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
+        model_name="gemini-1.5-flash-latest",
         system_instruction=system_instruction,
         generation_config=genai.GenerationConfig(temperature=temperature, max_output_tokens=max_tokens)
     )
@@ -54,23 +54,9 @@ RULES = {
     }
 }
 
-# --- 📝 다운로드용 텍스트 생성 함수 ---
 def create_download_text():
-    return f"""【 원작: {st.session_state.title} | {st.session_state.mode} 】
+    return f"【 원작: {st.session_state.title} | {st.session_state.mode} 】\n\n=== ✨ 새롭게 엮은 이야기 ===\n\n{st.session_state.final_story}\n\n\n=== 💡 작품 해설 ===\n\n{st.session_state.explanation}\n"
 
-=== ✨ 새롭게 엮은 이야기 ===
-
-{st.session_state.final_story}
-
-
-=== 💡 작품 해설 ===
-
-{st.session_state.explanation}
-"""
-
-# ==========================================
-# [1단계] 작품 선택 및 제목 입력 화면
-# ==========================================
 if st.session_state.step == 1:
     st.title("📜 한일 고전문학 스토리 변환기")
     st.markdown("어느 나라의 문법으로 이야기를 다시 지어볼까요? 변환할 방향과 원작 제목을 입력해 주십시오.")
@@ -107,9 +93,7 @@ if st.session_state.step == 1:
                 progress_bar.progress(80)
                 
                 status_text.write("⏳ 작품 해설을 정리하는 중입니다...")
-                explain_prompt = f"""당신은 문학 평론가입니다. 앞서 변환한 작업을 바탕으로 해설을 작성해주세요.
-                원작이 가졌던 문화적 특징(성향, 갈등, 결말)이 무엇이었고, 그것을 대상 문화의 어떤 특징으로 어떻게 바꾸었는지 구체적으로 비교 설명해주세요.
-                [원본 분석]: {analysis}\n[변환 플롯]: {plot}"""
+                explain_prompt = f"당신은 문학 평론가입니다. 앞서 변환한 작업을 바탕으로 해설을 작성해주세요.\n원작이 가졌던 문화적 특징(성향, 갈등, 결말)이 무엇이었고, 그것을 대상 문화의 어떤 특징으로 어떻게 바꾸었는지 구체적으로 비교 설명해주세요.\n[원본 분석]: {analysis}\n[변환 플롯]: {plot}"
                 explanation = call_gemini(explain_prompt, "문학 평론가", 0.7, 2000)
                 progress_bar.progress(100)
                 status_text.write("✨ 집필이 완료되었습니다!")
@@ -129,9 +113,6 @@ if st.session_state.step == 1:
                 else:
                     st.error(f"이야기를 변환하는 중에 예상치 못한 문제가 발생했습니다. 🥲\n\n다시 한 번 시도해 주시거나 잠시 후 접속해 주세요.\n(상세 에러: {e})")
 
-# ==========================================
-# [2단계] 변환된 소설 감상 화면
-# ==========================================
 elif st.session_state.step == 2:
     st.title(f"✨ 새롭게 엮은 이야기")
     st.markdown(f"**원작:** {st.session_state.title} | **방향:** {st.session_state.mode}")
@@ -139,28 +120,17 @@ elif st.session_state.step == 2:
     st.markdown(f"<div class='story-box'>{st.session_state.final_story}</div>", unsafe_allow_html=True)
     
     st.write("---")
-    # 버튼 3개를 나란히 배치
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("작품 해설 보기 ➡️", use_container_width=True):
             st.session_state.step = 3
             st.rerun()
     with col2:
-        # 다운로드 버튼 구현
-        st.download_button(
-            label="텍스트 파일로 저장 💾",
-            data=create_download_text(),
-            file_name=f"{st.session_state.title}_변환결과.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
+        st.download_button("텍스트 파일로 저장 💾", create_download_text(), f"{st.session_state.title}_변환결과.txt", "text/plain", use_container_width=True)
     with col3:
         if st.button("처음으로 돌아가기 🔄", use_container_width=True):
             reset_app()
 
-# ==========================================
-# [3단계] 원작과 변환작 특징 비교 해설 화면
-# ==========================================
 elif st.session_state.step == 3:
     st.title("💡 두 문화의 교차점: 작품 해설")
     st.markdown("AI 평론가가 분석한 원작과 변환된 작품의 서사적/문화적 차이입니다.")
@@ -168,16 +138,9 @@ elif st.session_state.step == 3:
     st.markdown(f"<div class='explanation-box'>{st.session_state.explanation}</div>", unsafe_allow_html=True)
     
     st.write("---")
-    # 버튼 2개를 나란히 배치
     col1, col2 = st.columns(2)
     with col1:
-        st.download_button(
-            label="텍스트 파일로 저장 💾",
-            data=create_download_text(),
-            file_name=f"{st.session_state.title}_변환결과.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
+        st.download_button("텍스트 파일로 저장 💾", create_download_text(), f"{st.session_state.title}_변환결과.txt", "text/plain", use_container_width=True)
     with col2:
         if st.button("처음으로 돌아가기 🔄", use_container_width=True):
             reset_app()
