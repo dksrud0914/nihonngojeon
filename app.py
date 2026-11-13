@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 # --- 🎨 웹사이트 디자인 (CSS) 적용 ---
 st.set_page_config(page_title="고전문학 유니버스", page_icon="📜", layout="wide")
@@ -19,10 +20,10 @@ div.stDownloadButton > button:first-child { background-color: #3e2723; color: #f
 </style>
 """, unsafe_allow_html=True)
 
-# --- ⚙️ API 설정 ---
+# --- ⚙️ API 설정 (새로운 genai 방식) ---
 try:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-except:
+    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+except Exception as e:
     st.error("API 키가 설정되지 않았습니다. 관리자(서버) 설정을 확인해주세요.")
 
 if 'step' not in st.session_state:
@@ -33,13 +34,17 @@ def reset_app():
     st.rerun()
 
 def call_gemini(prompt, system_instruction, temperature, max_tokens=3000):
-    # 명확한 최신 Flash 모델명으로 변경
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        system_instruction=system_instruction,
-        generation_config=genai.GenerationConfig(temperature=temperature, max_output_tokens=max_tokens)
+    # 구글 최신 패키지 문법 적용
+    response = client.models.generate_content(
+        model='gemini-1.5-flash',
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+        )
     )
-    return model.generate_content(prompt).text
+    return response.text
 
 RULES = {
     "KR": {
@@ -107,11 +112,7 @@ if st.session_state.step == 1:
                 st.rerun()
 
             except Exception as e:
-                error_msg = str(e).lower()
-                if "429" in error_msg or "quota" in error_msg or "exhausted" in error_msg:
-                    st.error("앗! 지금 변환기를 사용하시는 분들이 너무 많아서 AI가 잠시 숨을 고르고 있어요. 😅\n\n약 1분 정도만 기다리셨다가 다시 버튼을 눌러주시면 감사하겠습니다!")
-                else:
-                    st.error(f"이야기를 변환하는 중에 예상치 못한 문제가 발생했습니다. 🥲\n\n다시 한 번 시도해 주시거나 잠시 후 접속해 주세요.\n(상세 에러: {e})")
+                st.error(f"이야기를 변환하는 중에 오류가 발생했습니다. 상세 에러: {e}")
 
 elif st.session_state.step == 2:
     st.title(f"✨ 새롭게 엮은 이야기")
