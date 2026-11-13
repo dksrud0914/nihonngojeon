@@ -34,9 +34,9 @@ def reset_app():
     st.rerun()
 
 def call_gemini(prompt, system_instruction, temperature, max_tokens=3000):
-    # 가장 범용적이고 안정적인 최신 플래시 모델명으로 설정
+    # 가장 안정적인 최신 표준 2.0 플래시 모델 사용
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-2.0-flash',
         contents=prompt,
         config=types.GenerateContentConfig(
             system_instruction=system_instruction,
@@ -95,4 +95,53 @@ if st.session_state.step == 1:
 
                 status_text.write("⏳ 새로운 문체로 소설을 집필하는 중입니다...")
                 final_story = call_gemini(f"플롯을 바탕으로 소설을 쓰세요.\n[규칙]: {current_rule['step3']}\n[플롯]: {plot}", current_rule["system"], 0.9, 4000)
-                progress_bar
+                progress_bar.progress(80)
+                
+                status_text.write("⏳ 작품 해설을 정리하는 중입니다...")
+                explain_prompt = f"당신은 문학 평론가입니다. 앞서 변환한 작업을 바탕으로 해설을 작성해주세요.\n원작이 가졌던 문화적 특징(성향, 갈등, 결말)이 무엇이었고, 그것을 대상 문화의 어떤 특징으로 어떻게 바꾸었는지 구체적으로 비교 설명해주세요.\n[원본 분석]: {analysis}\n[변환 플롯]: {plot}"
+                explanation = call_gemini(explain_prompt, "문학 평론가", 0.7, 2000)
+                progress_bar.progress(100)
+                status_text.write("✨ 집필이 완료되었습니다!")
+                
+                st.session_state.title = title_input
+                st.session_state.mode = mode
+                st.session_state.final_story = final_story
+                st.session_state.explanation = explanation
+                
+                st.session_state.step = 2
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"이야기를 변환하는 중에 오류가 발생했습니다. 상세 에러: {e}")
+
+elif st.session_state.step == 2:
+    st.title(f"✨ 새롭게 엮은 이야기")
+    st.markdown(f"**원작:** {st.session_state.title} | **방향:** {st.session_state.mode}")
+    
+    st.markdown(f"<div class='story-box'>{st.session_state.final_story}</div>", unsafe_allow_html=True)
+    
+    st.write("---")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("작품 해설 보기 ➡️", use_container_width=True):
+            st.session_state.step = 3
+            st.rerun()
+    with col2:
+        st.download_button("텍스트 파일로 저장 💾", create_download_text(), f"{st.session_state.title}_변환결과.txt", "text/plain", use_container_width=True)
+    with col3:
+        if st.button("처음으로 돌아가기 🔄", use_container_wood=True):
+            reset_app()
+
+elif st.session_state.step == 3:
+    st.title("💡 두 문화의 교차점: 작품 해설")
+    st.markdown("AI 평론가가 분석한 원작과 변환된 작품의 서사적/문화적 차이입니다.")
+    
+    st.markdown(f"<div class='explanation-box'>{st.session_state.explanation}</div>", unsafe_allow_html=True)
+    
+    st.write("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.download_button("텍스트 파일로 저장 💾", create_download_text(), f"{st.session_state.title}_변환결과.txt", "text/plain", use_container_width=True)
+    with col2:
+        if st.button("처음으로 돌아가기 🔄", use_container_width=True):
+            reset_app()
