@@ -34,9 +34,9 @@ def reset_app():
     st.rerun()
 
 def call_gemini(prompt, system_instruction, temperature, max_tokens=3000):
-    # 가장 안정적인 최신 표준 2.0 플래시 모델 사용
+    # 구글 안내에 따른 최신 모델명 적용
     response = client.models.generate_content(
-        model='gemini-2.0-flash',
+        model='gemini-3.8-flash',
         contents=prompt,
         config=types.GenerateContentConfig(
             system_instruction=system_instruction,
@@ -129,7 +129,7 @@ elif st.session_state.step == 2:
     with col2:
         st.download_button("텍스트 파일로 저장 💾", create_download_text(), f"{st.session_state.title}_변환결과.txt", "text/plain", use_container_width=True)
     with col3:
-        if st.button("처음으로 돌아가기 🔄", use_container_wood=True):
+        if st.button("처음으로 돌아가기 🔄", use_container_width=True):
             reset_app()
 
 elif st.session_state.step == 3:
