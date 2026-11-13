@@ -34,9 +34,9 @@ def reset_app():
     st.rerun()
 
 def call_gemini(prompt, system_instruction, temperature, max_tokens=3000):
-    # 구글 최신 패키지 문법 적용
+    # 구글 최신 패키지 문법 적용 및 정확한 모델명 지정 (-002)
     response = client.models.generate_content(
-        model='gemini-1.5-flash',
+        model='gemini-1.5-flash-002',
         contents=prompt,
         config=types.GenerateContentConfig(
             system_instruction=system_instruction,
