@@ -35,7 +35,7 @@ def reset_app():
 def call_gemini(prompt, system_instruction, temperature, max_tokens=3000):
     # 명확한 최신 Flash 모델명으로 변경
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash-latest",
+        model_name="gemini-1.5-flash",
         system_instruction=system_instruction,
         generation_config=genai.GenerationConfig(temperature=temperature, max_output_tokens=max_tokens)
     )
